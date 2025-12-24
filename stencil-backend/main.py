@@ -1,21 +1,19 @@
 import math
+import io
+from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, ImageFilter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
-from datetime import datetime
-import io
-import time
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,7 +31,7 @@ async def generate_stencil(
         return {"error": "File is not an image."}
 
     try:
-        # Page dimensions based on orientation
+        # 1. Page settings
         if orientation == "landscape":
             pagesize = landscape(A4)
             a4_w_cm, a4_h_cm = 29.7, 21.0
@@ -43,81 +41,66 @@ async def generate_stencil(
         
         a4_w_pt, a4_h_pt = pagesize
 
-        # DPI for high quality
-        DPI = 300
-        pt_to_px = DPI / 72.0
+        # 2. Open Image
+        img = Image.open(file.file).convert("RGB")
+        img_w_orig, img_h_orig = img.size
 
-        a4_w_px = int(a4_w_pt * pt_to_px)
-        a4_h_px = int(a4_h_pt * pt_to_px)
-
-        img = Image.open(file.file)
-
-        
-
+        # Apply Filters
         if filter_type == "bw":
-            img = ImageOps.grayscale(img).convert("RGB") # Keep it RGB for color padding
+            img = ImageOps.grayscale(img).convert("RGB")
         elif filter_type == "outline":
-            # 1. Convert to grayscale and find edges
             img = img.convert("L").filter(ImageFilter.FIND_EDGES)
-            # 2. Invert the colors (White edges on Black -> Black edges on White)
-            img = ImageOps.invert(img)
-            # 3. Convert to RGB if you need to maintain consistency with other filters
-            img = img.convert("RGB")
+            img = ImageOps.invert(img).convert("RGB")
 
-        # Calculate grid size
-        cols = math.ceil(target_width_cm / a4_w_cm)
-        rows = math.ceil(target_height_cm / a4_h_cm)
-
-        # Total dimensions in pixels for the final assembled image
-        total_w_px = cols * a4_w_px
-        total_h_px = rows * a4_h_px
-
-        # Resize and pad the original image to fit the total dimensions, allowing upscaling
-        img_copy = img.copy()
+        # 3. UI already sends CM (it converts ft+in to cm)
+        # So we use the values directly
+        final_w_cm = target_width_cm
+        final_h_cm = target_height_cm
         
-        img_ratio = img_copy.width / img_copy.height
-        target_ratio = total_w_px / total_h_px
+        # Calculate grid based on these exact dimensions
+        cols = math.ceil(final_w_cm / a4_w_cm)
+        rows = math.ceil(final_h_cm / a4_h_cm)
 
-        if img_ratio > target_ratio:
-            # Image is wider than target, fit to width
-            new_w = total_w_px
-            new_h = int(new_w / img_ratio)
-        else:
-            # Image is taller or same ratio, fit to height
-            new_h = total_h_px
-            new_w = int(new_h * img_ratio)
+        # 4. Convert to pixels at 300 DPI
+        DPI = 300
+        cm_to_inch = 1 / 2.54
+        total_w_px = int(final_w_cm * cm_to_inch * DPI)
+        total_h_px = int(final_h_cm * cm_to_inch * DPI)
+        
+        # 5. Resize image to exact target size (will stretch if needed)
+        resized_img = img.resize((total_w_px, total_h_px), Image.Resampling.LANCZOS)
 
-        resized_img = img_copy.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        
-        padded_img = Image.new("RGB", (total_w_px, total_h_px), "white")
-        
-        paste_x = (total_w_px - resized_img.width) // 2
-        paste_y = (total_h_px - resized_img.height) // 2
-        padded_img.paste(resized_img, (paste_x, paste_y))
-        
+        # 6. A4 page size in pixels
+        page_w_px = int(a4_w_cm * cm_to_inch * DPI)
+        page_h_px = int(a4_h_cm * cm_to_inch * DPI)
+
+        # 7. Generate PDF with tiles
         pdf_buffer = io.BytesIO()
         c = canvas.Canvas(pdf_buffer, pagesize=pagesize)
 
         for r in range(rows):
             for col in range(cols):
-                left = col * a4_w_px
-                top = r * a4_h_px
-                right = left + a4_w_px
-                bottom = top + a4_h_px
+                left = col * page_w_px
+                upper = r * page_h_px
+                right = min(left + page_w_px, total_w_px)
+                lower = min(upper + page_h_px, total_h_px)
 
-                tile = padded_img.crop((left, top, right, bottom))
-                tile_buffer = io.BytesIO()
-                tile.save(tile_buffer, format="PNG")
-                tile_buffer.seek(0)
+                tile = resized_img.crop((left, upper, right, lower))
+                
+                page_canvas = Image.new("RGB", (page_w_px, page_h_px), "white")
+                page_canvas.paste(tile, (0, 0))
 
-                c.drawImage(ImageReader(tile_buffer), 0, 0, width=a4_w_pt, height=a4_h_pt)
+                tile_io = io.BytesIO()
+                page_canvas.save(tile_io, format="JPEG", quality=95)
+                tile_io.seek(0)
+
+                c.drawImage(ImageReader(tile_io), 0, 0, width=a4_w_pt, height=a4_h_pt)
                 c.showPage()
+
         c.save()
         pdf_buffer.seek(0)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"stencil_{timestamp}.pdf"
-
+        filename = f"stencil_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         return StreamingResponse(
             pdf_buffer,
             media_type="application/pdf",
@@ -126,6 +109,5 @@ async def generate_stencil(
 
     except Exception as e:
         return {"error": str(e)}
-
     finally:
         file.file.close()
