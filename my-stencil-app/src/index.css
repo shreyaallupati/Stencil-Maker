@@ -10,10 +10,24 @@
   --primary-paint: #6441f1; /* Iris / Ultramarine */
   --secondary-paint: #f83b5e; /* Neon Madder Lake */
   --accent-glow: #42f1da; /* Veridian Glow */
+  --bg: #f9a8d4;
   
   color-scheme: dark;
-  background-color: var(--bg-color);
+  background-color: var(--bg);
   color: var(--text-color);
+}
+
+/* FORCE ROOT SCROLLING */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  /* Use min-height instead of height to allow the page to grow */
+  min-height: 100%; 
+  background-color: var(--bg) !important;
+  /* Allow natural browser scrolling */
+  overflow-x: hidden;
+  overflow-y: auto; 
 }
 
 body {
@@ -23,10 +37,9 @@ body {
   justify-content: center;
   min-height: 100vh;
   /* Abstract "Grip" Background - looks like a dark cutting mat or floor */
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(93, 63, 211, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(255, 77, 109, 0.15) 0%, transparent 40%),
-    #0d0d0d;
+  background: linear-gradient(to bottom, #fbcfe8, #f9a8d4);
+  flex-direction: column;
+  background-color: #f9a8d4; /* This fills the 'black area' you see */
 }
 
 a {

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Monoton&display=swap');
+
 :root {
   --bg: #f8dbf3;
   --panel: #ffffff;
@@ -9,68 +10,145 @@
   --shadow: 6px 6px 0px #1a1a1a;
 }
 
-body {
-  background-color: var(--bg);
-  color: var(--text);
+/* 1. THE FOUNDATION: Fixes the black area bug */
+html, body {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  padding: 0;
+  width: 100%;
+  min-height: 100%; 
+  background-color: var(--bg); 
 }
 
-.app-container {
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+}
+
+/* .app-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  min-height: 100vh; 
   width: 100%;
   padding: 20px;
+  background: linear-gradient(to bottom, #fbcfe8, #f9a8d4);
+} */
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Start from top */
+  align-items: center;
+  width: 100%;
+  /* Ensures the pink background is at least the screen height */
+  min-height: 100vh; 
+  /* Add significant bottom padding so the bottom card isn't cut off */
+  padding: 20px 20px 80px 20px; 
+  background: linear-gradient(to bottom, #fbcfe8, #f9a8d4);
+  /* Smooth scrolling for iOS */
+  -webkit-overflow-scrolling: touch; 
 }
 
-.art-card {
+
+/* 2. CARD FIX: Flexible sizing for responsiveness */
+/* .art-card {
   background: var(--panel);
   border: 3px solid var(--border);
   box-shadow: var(--shadow);
-  padding: 40px;
-  width: 80%;
-  height: 80%;
+  padding: 30px; 
+  width: 95%;    
   max-width: 500px;
+  height: auto; 
+  margin: 20px auto;
+} */
+
+.main-layout {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+  align-items: stretch; /* FORCES equal height on PC */
+  width: 100%;
+  max-width: 1100px;
 }
 
-header h1 {
+.art-card, .preview-card {
+  background: var(--panel);
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 30px;
+  flex: 1;
+  min-width: 320px;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column; /* Allows internal content to stretch */
+}
+
+/* Ensure the image frame grows to fill the matched card height */
+.image-frame {
+  flex-grow: 1; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid var(--border);
+  background: #f1f1f1;
+  padding: 10px;
+  overflow: hidden;
+}
+
+/* 3. HEADER & ANIMATIONS */
+/* header h1 {
   font-family: "Monoton";
-  /* font-family: "Galada", cursive; */
   font-style: normal;
-  line-height: 0.9;
-  background: linear-gradient(45deg, #f55321, #f02d78,#5d3fd3, #53cdfa, #37fcce);
-  background-size: 400% 400%; /* Make the background huge so we can move it */
+  line-height: 1.1;
+  background: linear-gradient(45deg, #f55321, #f02d78, #5d3fd3, #53cdfa, #37fcce);
+  background-size: 400% 400%;
   animation: gradientBG 10s ease infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  /* filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); */
-
-  padding: 5px;
-  padding-left: 0;
+  padding: 5px 0;
   margin: 0;
-  font-size: 3rem;
+  font-size: clamp(2rem, 8vw, 3.5rem);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: -1px;
   width: fit-content;
   transition: all 0.2s ease;
+} */
+
+header h1 {
+  font-family: "Monoton";
+  font-weight: 400; /* Forces the browser to stop auto-bolding */
+  font-size: clamp(1.4rem, 6.5vw, 2.8rem); 
+  line-height: 1.2; /* Increased slightly to give the letters breathing room */
+  letter-spacing: 2px; /* Changed from -1.5px to positive to reduce density */
+  white-space: nowrap; 
+  width: 100%;
+  display: block;
+  background: linear-gradient(45deg, #f55321, #f02d78, #5d3fd3, #53cdfa, #37fcce);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 400% 400%;
+  animation: gradientBG 10s ease infinite;
+  
+  /* Optional: Smooths out the font rendering on some browsers */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-header h1:hover{
-  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
-  /* filter: drop-shadow(0 10px 10px var(--accent-glow)); */
+header h1:hover {
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
   transform: translate(-2px, -2px);
 }
 
 header p {
   margin: 5px 0 30px 0;
-  opacity: 0.6;
-  font-weight: 500;
+  opacity: 0.7;
+  font-weight: 600;
 }
 
-/* Reusable Field Styles */
+/* 4. FORM FIELDS */
 .field-group {
   display: flex;
   flex-direction: column;
@@ -86,20 +164,16 @@ header p {
   letter-spacing: 1px;
 }
 
-
-/* Container for the input + suffix */
 .input-wrapper {
   display: flex;
   align-items: center;
   border: 2px solid var(--border);
-  background: #333333; /* Dark background for the input side */
-  overflow: hidden; /* Ensures corners look sharp */
+  background: #333333;
+  overflow: hidden;
   transition: all 0.2s ease;
 }
 
-/* Hover Effect for the wrapper and select */
-.input-wrapper:hover, 
-select:hover {
+.input-wrapper:hover, select:hover {
   border-color: var(--accent);
   box-shadow: 4px 4px 0px var(--accent);
   transform: translate(-2px, -2px);
@@ -113,20 +187,19 @@ input {
   font-weight: 600;
   font-size: 1rem;
   outline: none;
-  background: transparent; /* Takes color from wrapper */
-  color: white; /* White text for dark background */
+  background: transparent;
+  color: white;
 }
 
-/* Removal of the "Tiny Black Line" */
 .suffix {
   padding: 0 15px;
-  height: 100%;
+  height: 48px; /* Match input height */
   display: flex;
   align-items: center;
   font-weight: 800;
   color: var(--accent);
-  background: #ffffff; /* White background for unit side */
-  border-left: none;   /* REMOVED THE LINE HERE */
+  background: #ffffff;
+  border-left: 2px solid var(--border);
 }
 
 select {
@@ -138,47 +211,38 @@ select {
   outline: none;
   cursor: pointer;
   transition: all 0.2s ease;
-
   border: 2px solid var(--border);
-  background-color: #ffffff; 
-  color: #1a1a1a;            
-
+  background-color: #ffffff;
+  color: #1a1a1a;
   appearance: none;
   -webkit-appearance: none;
-  -moz-appearance: none;
-  
   background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 15px;
-  padding-right: 40px; 
+  padding-right: 40px;
 }
 
-select option {
-  background-color: #ffffff;
-  color: #1a1a1a;
-}
-
-/* Hover Effect - Matches the 'lifted' art style */
-select:hover {
-  border-color: var(--accent);
-  box-shadow: 4px 4px 0px var(--accent);
-  transform: translate(-2px, -2px);
-}
-
-/* Layout Grids */
+/* 5. RESPONSIVE GRID LAYOUT */
 .grid-row {
   display: flex;
   gap: 15px;
 }
 
+/* Complex (Imperial) Row handling */
+.grid-row.complex {
+  display: flex;
+  flex-direction: column; /* Stack width/height pairs on mobile */
+  gap: 10px;
+}
+
 .field-pair {
   display: flex;
-  gap: 5px;
+  gap: 10px;
   flex: 1;
 }
 
-/* File Upload Style */
+/* 6. FILE UPLOAD & BUTTONS */
 .file-upload {
   margin-bottom: 25px;
 }
@@ -186,12 +250,14 @@ select:hover {
 .file-upload input { display: none; }
 .file-upload label {
   display: block;
-  padding: 15px;
+  padding: 20px;
   border: 2px dashed var(--border);
   text-align: center;
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
   cursor: pointer;
-  transition:  all 0.2s ease;
+  transition: all 0.2s ease;
+  background: #fdfdfd;
 }
 
 .file-upload label:hover {
@@ -201,32 +267,82 @@ select:hover {
   transform: translate(-2px, -2px);
 }
 
-/* Action Button */
 button {
   width: 100%;
-  padding: 18px;
+  padding: 20px;
   margin-top: 10px;
   background: var(--accent);
   color: white;
-  border: 2px solid var(--border);
+  border: 3px solid var(--border);
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 2px;
   cursor: pointer;
-  box-shadow: 4px 4px 0px var(--border);
+  box-shadow: 6px 6px 0px var(--shadow);
   transition: all 0.1s;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0px var(--border);
   background: var(--highlight);
   color: var(--border);
 }
 
-button:active {
+button:active:not(:disabled) {
   transform: translate(2px, 2px);
   box-shadow: 0px 0px 0px var(--border);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* --- THE BORDER TRACE ANIMATION --- */
+
+.generate-btn {
+  position: relative;
+  overflow: hidden; /* Keep the animation inside the button bounds */
+  z-index: 1;
+}
+
+/* The 'moving border' effect using a pseudo-element */
+.generate-btn.loading::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent, 
+    transparent, 
+    transparent, 
+    var(--highlight) /* This is the moving 'segment' */
+  );
+  animation: rotateBorder 2s linear infinite;
+  z-index: -2;
+}
+
+/* Update the button to hide original text during loading */
+.generate-btn.loading {
+  color: transparent !important; /* Hides the original React text */
+  cursor: wait;
+  border-color: var(--border);
+}
+
+.generate-btn.loading::after {
+  content: 'Mixing Paints...'; 
+  position: absolute;
+  inset: 4px; /* Thickness of the tracing border */
+  background: var(--accent);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white; /* The only visible text color */
+  font-weight: 900;
+  z-index: 2; /* Ensures it sits above the rotating border */
 }
 
 .success-tag {
@@ -235,6 +351,95 @@ button:active {
   color: #10b981;
   text-align: center;
   animation: pop 0.3s ease-out;
+}
+
+/* Main wrapper for side-by-side layout */
+/* .main-layout {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap; 
+  gap: 30px;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1100px;
+} */
+
+/* Image Preview Styling */
+/* .preview-card {
+  background: var(--panel);
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 30px;
+  flex: 1;
+  min-width: 320px;
+  max-width: 500px;
+  position: sticky;
+  top: 40px;
+} */
+
+.preview-img {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  border: 2px solid var(--border);
+}
+
+/* Mobile Adjustments */
+
+@media (max-width: 768px) {
+  /* .main-layout {
+    display: flex;
+    flex-direction: column !important;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+  } */
+
+  /* .art-card, .preview-card {
+    flex: none !important; 
+    width: 100% !important;
+    max-width: 100%;
+    height: auto !important; 
+    min-height: min-content;
+    margin-bottom: 10px;
+    overflow: visible;
+  } */
+
+  /* Ensure the logo is always the first thing seen and not cut off */
+  header {
+    width: 100%;
+    margin-top: 10px;
+    font-size: 2rem;
+  }
+
+  .logo-text {
+    font-size: 2.2rem;
+    display: block;
+  }
+
+  .app-container {
+    /* Start at top so header doesn't vanish off-screen */
+    align-items: flex-start !important; 
+    padding: 10px 10px 60px 10px;
+  }
+
+  .main-layout {
+    flex-direction: column !important;
+    align-items: center;
+  }
+
+  .art-card, .preview-card {
+    height: auto !important; 
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+/* 7. KEYFRAMES */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pop {
@@ -247,3 +452,42 @@ button:active {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+
+@keyframes rotateBorder {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* MOBILE RESPONSIVENESS */
+/* @media (max-width: 500px) {
+  .grid-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .art-card {
+    padding: 25px 20px;
+    box-shadow: 4px 4px 0px var(--border);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 10px; 
+    align-items: flex-start; 
+
+  .art-card {
+    padding: 20px;
+    margin: 10px auto;
+    width: 100%; 
+  }
+
+  .grid-row {
+    flex-direction: column;
+    gap: 0; 
+  }
+
+  header h1 {
+    font-size: 2.2rem; 
+  }
+} */

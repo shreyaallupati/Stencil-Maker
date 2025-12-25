@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -27,6 +27,7 @@ const FieldSelect = ({ label, value, onChange, options }) => (
 
 function App() {
   const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null); // Preview state
   const [width, setWidth] = useState(100);
   const [height, setHeight] = useState(100);
   const [widthFt, setWidthFt] = useState(3);
@@ -39,7 +40,24 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
-  const toCm = (feet, inches) => (feet * 30.48) + (inches * 2.54);
+  // Handle file selection and local preview
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+    }
+  };
+
+  // Clean up memory
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const toCm = (feet, inches) => (parseFloat(feet) * 30.48) + (parseFloat(inches) * 2.54);
 
   const handleSubmit = async () => {
     if (!file) return alert("Upload an image first.");
@@ -55,83 +73,108 @@ function App() {
     formData.append('orientation', orientation);
 
     try {
-      const res = await axios.post('http://localhost:8000/generate-stencil/', formData, { responseType: 'blob' });
+      const res = await axios.post('http://localhost:8000/generate-stencil/', formData, { 
+        responseType: 'blob' 
+      });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'stencil.pdf');
+      link.setAttribute('download', `stencil_${Date.now()}.pdf`);
       document.body.appendChild(link);
       link.click();
       setDownloaded(true);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) { 
+      console.error(e); 
+      alert("Error generating stencil.");
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
     <div className="app-container">
-      <div className="art-card">
-        <header>
-          <h1>StencilMaker</h1>
-          <p>Convert artwork into mural guides</p>
-        </header>
+      <main className="main-layout">
+        {/* SETTINGS CARD */}
+        <div className="art-card">
+          <header>
+            <h1 className="logo-text">STENCILMAKER</h1>
+            <p className="subtitle">Convert artwork into mural guides</p>
+          </header>
 
-        <section className="controls">
-          <div className="file-upload">
-             <input type="file" id="file" onChange={(e) => setFile(e.target.files[0])} />
-             <label htmlFor="file">{file ? file.name : "Choose Masterpiece"}</label>
-          </div>
+          <section className="controls">
+            <div className="file-upload">
+              <input type="file" id="file" hidden onChange={handleFileChange} />
+              <label htmlFor="file" className="upload-label">
+                {file ? `✓ ${file.name}` : "Choose Masterpiece"}
+              </label>
+            </div>
 
-          <div className="grid-row">
-            <FieldSelect 
-              label="System" 
-              value={unit} 
-              onChange={(e) => setUnit(e.target.value)}
-              options={[{label: 'Metric (cm)', value: 'cm'}, {label: 'Imperial (ft)', value: 'ft'}]}
-            />
-            <FieldSelect 
-              label="Filter" 
-              value={filter} 
-              onChange={(e) => setFilter(e.target.value)}
-              options={[
-                {label: 'Full Color', value: 'color'},
-                {label: 'B&W Contrast', value: 'bw'},
-                {label: 'Line Outline', value: 'outline'}
-              ]}
-            />
-          </div>
-
-          {unit === 'cm' ? (
             <div className="grid-row">
-              <FieldInput label="Width" value={width} suffix="cm" onChange={(e) => setWidth(e.target.value)} />
-              <FieldInput label="Height" value={height} suffix="cm" onChange={(e) => setHeight(e.target.value)} />
+              <FieldSelect 
+                label="System" 
+                value={unit} 
+                onChange={(e) => setUnit(e.target.value)}
+                options={[{label: 'Metric (cm)', value: 'cm'}, {label: 'Imperial (ft)', value: 'ft'}]}
+              />
+              <FieldSelect 
+                label="Filter" 
+                value={filter} 
+                onChange={(e) => setFilter(e.target.value)}
+                options={[
+                  {label: 'Full Color', value: 'color'},
+                  {label: 'B&W Contrast', value: 'bw'},
+                  {label: 'Line Outline', value: 'outline'}
+                ]}
+              />
             </div>
-          ) : (
-            <div className="grid-row complex">
-              <div className="field-pair">
-                <FieldInput label="Width (ft)" value={widthFt} onChange={(e) => setWidthFt(e.target.value)} />
-                <FieldInput label="In" value={widthIn} onChange={(e) => setWidthIn(e.target.value)} />
+
+            {unit === 'cm' ? (
+              <div className="grid-row">
+                <FieldInput label="Width" value={width} suffix="cm" onChange={(e) => setWidth(e.target.value)} />
+                <FieldInput label="Height" value={height} suffix="cm" onChange={(e) => setHeight(e.target.value)} />
               </div>
-              <div className="field-pair">
-                <FieldInput label="Height (ft)" value={heightFt} onChange={(e) => setHeightFt(e.target.value)} />
-                <FieldInput label="In" value={heightIn} onChange={(e) => setHeightIn(e.target.value)} />
+            ) : (
+              <div className="grid-row complex">
+                <div className="field-pair">
+                  <FieldInput label="Width (ft)" value={widthFt} onChange={(e) => setWidthFt(e.target.value)} />
+                  <FieldInput label="In" value={widthIn} onChange={(e) => setWidthIn(e.target.value)} />
+                </div>
+                <div className="field-pair">
+                  <FieldInput label="Height (ft)" value={heightFt} onChange={(e) => setHeightFt(e.target.value)} />
+                  <FieldInput label="In" value={heightIn} onChange={(e) => setHeightIn(e.target.value)} />
+                </div>
               </div>
+            )}
+
+            <FieldSelect 
+              label="Paper Orientation" 
+              value={orientation} 
+              onChange={(e) => setOrientation(e.target.value)}
+              options={[{label: 'Portrait', value: 'portrait'}, {label: 'Landscape', value: 'landscape'}]}
+            />
+
+            <button 
+              onClick={handleSubmit} 
+              className={`generate-btn ${loading ? 'loading' : ''}`} 
+              disabled={loading}
+            >
+              GENERATE PDF STENCIL
+            </button>
+            
+            {downloaded && <div className="success-tag">Ready for the wall! ✨</div>}
+          </section>
+        </div>
+
+        {/* PREVIEW CARD */}
+        {previewUrl && (
+          <div className="preview-card">
+            <label className="preview-label">PREVIEW</label>
+            <div className="image-frame">
+              <img src={previewUrl} alt="Preview" className="preview-img" />
             </div>
-          )}
-
-          <FieldSelect 
-            label="Paper Orientation" 
-            value={orientation} 
-            onChange={(e) => setOrientation(e.target.value)}
-            options={[{label: 'Portrait', value: 'portrait'}, {label: 'Landscape', value: 'landscape'}]}
-          />
-
-          <button onClick={handleSubmit} className={loading ? 'loading' : ''} disabled={loading}>
-            {loading ? 'Mixing Paints...' : 'Generate PDF Stencil'}
-          </button>
-          
-          {downloaded && <div className="success-tag">Ready for the wall! ✨</div>}
-        </section>
-      </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
