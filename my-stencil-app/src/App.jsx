@@ -26,8 +26,11 @@ const FieldSelect = ({ label, value, onChange, options }) => (
 );
 
 function App() {
+  // STATE VARIABLES
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [backendPreviewUrl, setBackendPreviewUrl] = useState(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [width, setWidth] = useState(100);
   const [height, setHeight] = useState(100);
   const [widthFt, setWidthFt] = useState(3);
@@ -63,6 +66,44 @@ function App() {
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
+
+  // FETCH PREVIEW FROM BACKEND
+  useEffect(() => {
+    if (!file) return;
+
+    const fetchPreview = async () => {
+      setIsPreviewLoading(true);
+      
+      let tw = unit === 'cm' ? width : toCm(widthFt, widthIn);
+      let th = unit === 'cm' ? height : toCm(heightFt, heightIn);
+      let mx = addMargins === 'yes' ? (marginUnit === 'cm' ? marginX : toCm(marginXFt, marginXIn)) : 0;
+      let my = addMargins === 'yes' ? (marginUnit === 'cm' ? marginY : toCm(marginYFt, marginYIn)) : 0;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('target_width_cm', tw);
+      formData.append('target_height_cm', th);
+      formData.append('filter_type', filter);
+      formData.append('orientation', orientation);
+      formData.append('add_margins', addMargins === 'yes');
+      formData.append('margin_x_cm', mx);
+      formData.append('margin_y_cm', my);
+
+      try {
+        const res = await axios.post('http://localhost:8000/generate-preview/', formData, { responseType: 'blob' });
+        const url = URL.createObjectURL(res.data);
+        setBackendPreviewUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      } catch (e) {
+        console.error("Preview generation failed", e);
+      } finally { setIsPreviewLoading(false); }
+    };
+
+    const timer = setTimeout(fetchPreview, 800); // Debounce to avoid spamming backend
+    return () => clearTimeout(timer);
+  }, [file, width, height, widthFt, widthIn, heightFt, heightIn, unit, filter, orientation, addMargins, marginUnit, marginX, marginY, marginXFt, marginXIn, marginYFt, marginYIn]);
 
   const toCm = (feet, inches) => (parseFloat(feet || 0) * 30.48) + (parseFloat(inches || 0) * 2.54);
 
@@ -132,20 +173,62 @@ function App() {
             </div>
 
             <div className="grid-row">
-              <FieldSelect label="System" value={unit} onChange={(e) => setUnit(e.target.value)} options={[{ label: 'Metric (cm)', value: 'cm' }, { label: 'Imperial (ft)', value: 'ft' }]} />
-              <FieldSelect label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} options={[{ label: 'Color', value: 'color' }, { label: 'B&W', value: 'bw' }, { label: 'Outline', value: 'outline' }]} />
+              <FieldSelect 
+                label="System" 
+                value={unit} 
+                onChange={(e) => setUnit(e.target.value)} 
+                options={[{ label: 'Metric (cm)', value: 'cm' }, { label: 'Imperial (ft)', value: 'ft' }]} 
+              />
+              <FieldSelect 
+                label="Filter" 
+                value={filter} 
+                onChange={(e) => setFilter(e.target.value)} 
+                options={[{ label: 'Color', value: 'color' }, { label: 'B&W', value: 'bw' }, { label: 'Outline', value: 'outline' }]} 
+              />
             </div>
 
             {/* Main Mural Dimensions */}
             {unit === 'cm' ? (
               <div className="grid-row">
-                <FieldInput label="Mural Width" value={width} suffix="cm" onChange={(e) => setWidth(e.target.value)} />
-                <FieldInput label="Mural Height" value={height} suffix="cm" onChange={(e) => setHeight(e.target.value)} />
+                <FieldInput 
+                  label="Mural Width" 
+                  value={width} 
+                  suffix="cm" 
+                  onChange={(e) => setWidth(e.target.value)} 
+                />
+                <FieldInput 
+                  label="Mural Height" 
+                  value={height} 
+                  suffix="cm" 
+                  onChange={(e) => setHeight(e.target.value)} 
+                />
               </div>
             ) : (
               <div className="grid-row complex">
-                <div className="field-pair"><FieldInput label="W (ft)" value={widthFt} onChange={(e) => setWidthFt(e.target.value)} /><FieldInput label="In" value={widthIn} onChange={(e) => setWidthIn(e.target.value)} /></div>
-                <div className="field-pair"><FieldInput label="H (ft)" value={heightFt} onChange={(e) => setHeightFt(e.target.value)} /><FieldInput label="In" value={heightIn} onChange={(e) => setHeightIn(e.target.value)} /></div>
+                <div className="field-pair">
+                  <FieldInput 
+                    label="W (ft)" 
+                    value={widthFt} 
+                    onChange={(e) => setWidthFt(e.target.value)} 
+                  />
+                  <FieldInput 
+                  label="In" 
+                  value={widthIn} 
+                  onChange={(e) => setWidthIn(e.target.value)} 
+                  />
+                </div>
+                <div className="field-pair">
+                  <FieldInput 
+                    label="H (ft)" 
+                    value={heightFt} 
+                    onChange={(e) => setHeightFt(e.target.value)} 
+                  />
+                  <FieldInput 
+                    label="In" 
+                    value={heightIn} 
+                    onChange={(e) => setHeightIn(e.target.value)} 
+                  />
+                </div>
               </div>
             )}
 
@@ -160,55 +243,88 @@ function App() {
 
               {addMargins === 'yes' && (
                 <div className="margin-inputs">
-                  <FieldSelect label="Margin Units" value={marginUnit} onChange={(e) => setMarginUnit(e.target.value)} options={[{ label: 'cm', value: 'cm' }, { label: 'ft/in', value: 'ft' }]} />
+                  <FieldSelect 
+                    label="Margin Units" 
+                    value={marginUnit} 
+                    onChange={(e) => setMarginUnit(e.target.value)} 
+                    options={[{ label: 'cm', value: 'cm' }, { label: 'ft/in', value: 'ft' }]} 
+                  />
                   {marginUnit === 'cm' ? (
                     <div className="grid-row">
-                      <FieldInput label="Sides (X)" value={marginX} suffix="cm" onChange={(e) => setMarginX(e.target.value)} />
-                      <FieldInput label="Top/Bot (Y)" value={marginY} suffix="cm" onChange={(e) => setMarginY(e.target.value)} />
+                      <FieldInput 
+                        label="Sides (X)" 
+                        value={marginX} 
+                        suffix="cm" 
+                        onChange={(e) => setMarginX(e.target.value)} 
+                      />
+                      <FieldInput 
+                        label="Top/Bot (Y)" 
+                        value={marginY} 
+                        suffix="cm" 
+                        onChange={(e) => setMarginY(e.target.value)} 
+                      />
                     </div>
                   ) : (
                     <div className="grid-row complex">
-                      <div className="field-pair"><FieldInput label="X (ft)" value={marginXFt} onChange={(e) => setMarginXFt(e.target.value)} /><FieldInput label="In" value={marginXIn} onChange={(e) => setMarginXIn(e.target.value)} /></div>
-                      <div className="field-pair"><FieldInput label="Y (ft)" value={marginYFt} onChange={(e) => setMarginYFt(e.target.value)} /><FieldInput label="In" value={marginYIn} onChange={(e) => setMarginYIn(e.target.value)} /></div>
+                      <div className="field-pair">
+                        <FieldInput 
+                          label="X (ft)" 
+                          value={marginXFt} 
+                          onChange={(e) => setMarginXFt(e.target.value)} 
+                        />
+                        <FieldInput 
+                          label="In" 
+                          value={marginXIn} 
+                          onChange={(e) => setMarginXIn(e.target.value)} 
+                        />
+                      </div>
+                      <div className="field-pair">
+                        <FieldInput 
+                          label="Y (ft)" 
+                          value={marginYFt} 
+                          onChange={(e) => setMarginYFt(e.target.value)} 
+                        />
+                        <FieldInput 
+                          label="In" 
+                          value={marginYIn} 
+                          onChange={(e) => setMarginYIn(e.target.value)} 
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <FieldSelect label="Paper" value={orientation} onChange={(e) => setOrientation(e.target.value)} options={[{ label: 'Portrait', value: 'portrait' }, { label: 'Landscape', value: 'landscape' }]} />
+            <FieldSelect 
+              label="Paper" 
+              value={orientation} 
+              onChange={(e) => setOrientation(e.target.value)} 
+              options={[{ label: 'Portrait', value: 'portrait' }, { label: 'Landscape', value: 'landscape' }]} 
+            />
 
-            <button onClick={handleSubmit} className="generate-btn" disabled={loading}>{loading ? "PROCESSING..." : "GENERATE PDF"}</button>
+            <button 
+              onClick={handleSubmit} 
+              className={`generate-btn ${loading ? 'loading' : ''}`}
+              disabled={loading}>{loading ? "PROCESSING..." : "GENERATE PDF"}
+            </button>
           </section>
         </div>
 
-        {/* DUAL PREVIEW SECTION */}
+        {/* PREVIEW SECTION */}
         {previewUrl && (
           <div className="preview-container-horizontal">
-            {/* <div className="preview-card">
-              <label className="preview-label">ORIGINAL IMAGE</label>
-              <div className="image-frame">
-                <img src={previewUrl} alt="Preview" className="preview-img" />
-              </div>
-            </div> */}
-
             <div className="preview-card">
-              <label className="preview-label">A4 GRID PREVIEW ({cols} x {rows} sheets)</label>
-              {/* Outer Black Border for the whole mural */}
-              <div className={`image-frame grid-preview-frame ${addMargins === 'yes' ? 'has-margins' : ''}`}>
-                <div className={`stencil-simulation ${filter} ${addMargins === 'yes' ? 'has-margins' : ''}`}>
-                  {/* Inner Black Border for the image edge */}
-                  <div className="inner-image-container" style={{
-                    border: addMargins === 'yes' ? '2px solid black' : 'none',
-                    position: 'relative',
-                    height: '100%'
-                  }}>
-                    <img src={previewUrl} alt="Grid" className="preview-img-filtered" style={{ height: '100%', objectFit: 'cover' }} />
-                    <div className="grid-overlay" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
-                      {Array.from({ length: cols * rows }).map((_, i) => <div key={i} className="grid-cell" />)}
-                    </div>
-                  </div>
-                </div>
+              <label className="preview-label">A4 Grid Preview ({cols} x {rows} sheets)</label>
+              <div className="image-frame grid-preview-frame">
+                {isPreviewLoading ? (
+                  <div className="loader"></div>
+                ) : backendPreviewUrl ? (
+                  <img src={backendPreviewUrl} alt="Accurate Grid Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', boxShadow: '0 5px 15px rgba(0,0,0,2)' }} />
+                ) : (
+                  //<div style={{ color: '#999' }}>Upload image to see preview</div>
+                  <div className="loader"></div>
+                )}
               </div>
             </div>
           </div>

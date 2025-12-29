@@ -53,7 +53,6 @@ async def generate_stencil(
         elif filter_type == "outline":
             img = img.convert("L").filter(ImageFilter.FIND_EDGES)
             img = ImageOps.invert(img).convert("RGB")
-            # img= ImageOps.convert("RGB")
 
         # 3. Dimensions & Resolution
         DPI = 300
@@ -141,6 +140,89 @@ async def generate_stencil(
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
+
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        file.file.close()
+
+@app.post("/generate-preview/")
+async def generate_preview(
+    file: UploadFile = File(...),
+    target_width_cm: float = Form(...),
+    target_height_cm: float = Form(...),
+    filter_type: str = Form(...),
+    orientation: str = Form("portrait"),
+    add_margins: bool = Form(False),
+    margin_x_cm: float = Form(0.0),
+    margin_y_cm: float = Form(0.0)
+):
+    if not file.content_type.startswith("image/"):
+        return {"error": "File is not an image."}
+
+    try:
+        # 1. Page settings
+        if orientation == "landscape":
+            a4_w_cm, a4_h_cm = 29.7, 21.0
+        else:
+            a4_w_cm, a4_h_cm = 21.0, 29.7
+
+        # 2. Open Image and apply filters
+        img = Image.open(file.file).convert("RGB")
+        if filter_type == "bw":
+            img = ImageOps.grayscale(img).convert("RGB")
+        elif filter_type == "outline":
+            img = img.convert("L").filter(ImageFilter.FIND_EDGES)
+            img = ImageOps.invert(img).convert("RGB")
+
+        # 3. Dimensions & Resolution
+        DPI = 150 # Lower DPI for preview speed
+        cm_to_inch = 1 / 2.54
+        
+        total_w_px = int(target_width_cm * cm_to_inch * DPI)
+        total_h_px = int(target_height_cm * cm_to_inch * DPI)
+
+        # 4. Create Canvas
+        mural_canvas = Image.new("RGB", (total_w_px, total_h_px), "white")
+        draw = ImageDraw.Draw(mural_canvas)
+
+        # 5. Margins & Placement
+        if add_margins:
+            inner_w_cm = max(0.1, target_width_cm - (2 * margin_x_cm))
+            inner_h_cm = max(0.1, target_height_cm - (2 * margin_y_cm))
+            inner_w_px = int(inner_w_cm * cm_to_inch * DPI)
+            inner_h_px = int(inner_h_cm * cm_to_inch * DPI)
+            offset_x_px = int(margin_x_cm * cm_to_inch * DPI)
+            offset_y_px = int(margin_y_cm * cm_to_inch * DPI)
+
+            resized_img = img.resize((inner_w_px, inner_h_px), Image.Resampling.LANCZOS)
+            mural_canvas.paste(resized_img, (offset_x_px, offset_y_px))
+            
+            # Draw Borders
+            draw.rectangle([0, 0, total_w_px - 1, total_h_px - 1], outline="black", width=3)
+            draw.rectangle([offset_x_px, offset_y_px, offset_x_px + inner_w_px, offset_y_px + inner_h_px], outline="black", width=3)
+        else:
+            resized_img = img.resize((total_w_px, total_h_px), Image.Resampling.LANCZOS)
+            mural_canvas.paste(resized_img, (0, 0))
+
+        # 6. Draw Grid Lines (Red)
+        cols = math.ceil(target_width_cm / a4_w_cm)
+        rows = math.ceil(target_height_cm / a4_h_cm)
+        page_w_px = int(a4_w_cm * cm_to_inch * DPI)
+        page_h_px = int(a4_h_cm * cm_to_inch * DPI)
+
+        for r in range(1, rows):
+            y = r * page_h_px
+            draw.line([(0, y), (total_w_px, y)], fill="red", width=2)
+        for c in range(1, cols):
+            x = c * page_w_px
+            draw.line([(x, 0), (x, total_h_px)], fill="red", width=2)
+
+        # Return Image
+        img_io = io.BytesIO()
+        mural_canvas.save(img_io, 'JPEG', quality=85)
+        img_io.seek(0)
+        return StreamingResponse(img_io, media_type="image/jpeg")
 
     except Exception as e:
         return {"error": str(e)}
