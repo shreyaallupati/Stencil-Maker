@@ -100,6 +100,8 @@ function App() {
         }
         console.log('Using backend URL:', backendUrl)
 
+        // let backendUrl = 'http://localhost:8000'
+
         const res = await axios.post(backendUrl+'/generate-preview/', formData, { responseType: 'blob' });
         const url = URL.createObjectURL(res.data);
         setBackendPreviewUrl(prev => {
@@ -163,6 +165,8 @@ function App() {
         console.error(e);
       }
       console.log('Using backend URL:', backendUrl)
+
+      // let backendUrl = 'http://localhost:8000'
 
       const res = await axios.post(backendUrl+'/generate-stencil/', formData, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));

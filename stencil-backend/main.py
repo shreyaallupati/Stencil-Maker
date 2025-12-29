@@ -59,7 +59,7 @@ async def generate_stencil(
             img = ImageOps.invert(img).convert("RGB")
 
         # 3. Dimensions & Resolution
-        DPI = 300
+        DPI = 50
         cm_to_inch = 1 / 2.54
         
         # Total mural dimensions in pixels
@@ -180,7 +180,7 @@ async def generate_preview(
             img = ImageOps.invert(img).convert("RGB")
 
         # 3. Dimensions & Resolution
-        DPI = 150 # Lower DPI for preview speed
+        DPI = 50 # Lower DPI for preview speed
         cm_to_inch = 1 / 2.54
         
         total_w_px = int(target_width_cm * cm_to_inch * DPI)
