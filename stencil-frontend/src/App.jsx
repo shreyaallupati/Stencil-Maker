@@ -90,7 +90,17 @@ function App() {
       formData.append('margin_y_cm', my);
 
       try {
-        const res = await axios.post('http://localhost:8000/generate-preview/', formData, { responseType: 'blob' });
+        let backendUrl = 'https://stencil-maker-backend.onrender.com'
+        try { 
+          const test = await axios.post(backendUrl);
+        } catch (e) {
+          console.log('Backend not running, using local instead');
+          console.error(e);
+          backendUrl = 'http://localhost:8000';
+        }
+        console.log('Using backend URL:', backendUrl)
+
+        const res = await axios.post(backendUrl+'/generate-preview/', formData, { responseType: 'blob' });
         const url = URL.createObjectURL(res.data);
         setBackendPreviewUrl(prev => {
           if (prev) URL.revokeObjectURL(prev);

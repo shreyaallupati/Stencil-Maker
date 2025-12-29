@@ -20,6 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {"message": "Stencil service is running!"}
+
 @app.post("/generate-stencil/")
 async def generate_stencil(
     file: UploadFile = File(...),
