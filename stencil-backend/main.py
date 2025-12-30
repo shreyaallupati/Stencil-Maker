@@ -6,15 +6,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 # Added ImageDraw to handle the black lines
 from PIL import Image, ImageOps, ImageFilter, ImageDraw
-import pillow_heif
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 
 app = FastAPI()
-
-# Register HEIC opener to support .heic files
-pillow_heif.register_heif_opener()
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,9 +51,7 @@ async def generate_stencil(
         a4_w_pt, a4_h_pt = pagesize
 
         # 2. Open Image and apply filters
-        img = Image.open(file.file)
-        img = ImageOps.exif_transpose(img) # Fix orientation for HEIC/Phone photos
-        img = img.convert("RGB")
+        img = Image.open(file.file).convert("RGB")
         if filter_type == "bw":
             img = ImageOps.grayscale(img).convert("RGB")
         elif filter_type == "outline":
