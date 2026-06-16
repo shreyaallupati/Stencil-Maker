@@ -6,7 +6,7 @@ The ecosystem consists of a **FastAPI** backend for image processing, a **React*
 
 ---
 
-### ## Key Features
+### Key Features
 
 * **Image-to-Stencil Conversion:** High-contrast edge detection to transform photos into clean outlines.
 * **Intelligent Tiling:** Automatically splits large designs into a grid of A4 sheets with alignment markers.
@@ -16,7 +16,7 @@ The ecosystem consists of a **FastAPI** backend for image processing, a **React*
 
 ---
 
-### ## Tech Stack
+### Tech Stack
 
 | Component | Technologies |
 | :--- | :--- |
@@ -26,7 +26,7 @@ The ecosystem consists of a **FastAPI** backend for image processing, a **React*
 
 ---
 
-### ## Project Structure
+### Project Structure
 
 ```text
 ├── backend/            # FastAPI server & image processing logic
@@ -36,26 +36,26 @@ The ecosystem consists of a **FastAPI** backend for image processing, a **React*
 
 ---
 
-### ## Getting Started
+### Getting Started
 
-#### ### 1. Backend Setup
+#### 1. Backend Setup
 1. Navigate to `/backend`.
 2. Install dependencies: `pip install -r requirements.txt`.
 3. Start the server: `uvicorn main:app --reload`.
 
-#### ### 2. Web App Setup
+#### 2. Web App Setup
 1. Navigate to `/web-app`.
 2. Install dependencies: `npm install`.
 3. Run the development server: `npm start`.
 
-#### ### 3. Expo App Setup
+#### 3. Expo App Setup
 1. Navigate to `/mobile-app`.
 2. Install dependencies: `npm install`.
 3. Start the Expo Go environment: `npx expo start`.
 
 ---
 
-### ## Usage Flow
+### Usage Flow
 
 1.  **Upload:** Select an image via the web or mobile interface.
 2.  **Configure:** Set the desired physical width/height of the final mural.
